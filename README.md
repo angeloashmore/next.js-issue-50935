@@ -1,44 +1,53 @@
-This is a [Next.js](https://nextjs.org/) template to use when reporting a [bug in the Next.js repository](https://github.com/vercel/next.js/issues).
+This repository contains a reproduction of a `next@13.4.5-canary.7` bug.
 
-## Getting Started
+# The specific scenario where the bug occurs
 
-These are the steps you should follow when creating a bug report:
+The following conditions must be met:
 
-- Bug reports must be verified against the `next@canary` release. The canary version of Next.js ships daily and includes all features and fixes that have not been released to the stable version yet. Think of canary as a public beta. Some issues may already be fixed in the canary version, so please verify that your issue reproduces before opening a new issue. Issues not verified against `next@canary` will be closed after 30 days.
-- Make sure your issue is not a duplicate. Use the [GitHub issue search](https://github.com/vercel/next.js/issues) to see if there is already an open issue that matches yours. If that is the case, upvoting the other issue's first comment is desireable as we often prioritize issues based on the number of votes they receive. Note: Adding a "+1" or "same issue" comment without adding more context about the issue should be avoided. If you only find closed related issues, you can link to them using the issue number and `#`, eg.: `I found this related issue: #3000`.
-- If you think the issue is not in Next.js, the best place to ask for help is our [Discord community](https://nextjs.org/discord) or [GitHub discussions](https://github.com/vercel/next.js/discussions). Our community is welcoming and can often answer a project-related question faster than the Next.js core team.
-- Make the reproduction as minimal as possible. Try to exclude any code that does not help reproducing the issue. E.g. if you experience problems with Routing, including ESLint configurations or API routes aren't necessary. The less lines of code is to read through, the easier it is for the Next.js team to investigate. It may also help catching bugs in your codebase before publishing an issue.
+- In development (i.e. the dev server).
+- In a dynamc route.
+- In a statically rendered route using `generateStaticParams()`.
+- While Draft Mode is enabled.
 
-## How to use this template
+With the above met, call `router.refresh()` in a Client Component's `useEffect()`.
 
-Execute [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app) with [npm](https://docs.npmjs.com/cli/init), [Yarn](https://yarnpkg.com/lang/en/docs/cli/create/), or [pnpm](https://pnpm.io) to bootstrap the example:
+# The error
 
-```bash
-npx create-next-app --example reproduction-template reproduction-app
+The following output prints to the server console. The browser performs a full refresh rather than a client-side refresh.
+
+```
+- error Error: invariant: Expected pageData to be a string for app data request but received undefined. This is a bug in Next.js.
+    at DevServer.renderToResponseWithComponentsImpl (/[REDACTED]/nextjs-tutorial-app-router/node_modules/next/dist/server/base-server.js:1261:27)
+    at async DevServer.renderPageComponent (/[REDACTED]/nextjs-tutorial-app-router/node_modules/next/dist/server/base-server.js:1320:24)
+    at async DevServer.renderToResponseImpl (/[REDACTED]/nextjs-tutorial-app-router/node_modules/next/dist/server/base-server.js:1351:32)
+    at async DevServer.pipeImpl (/[REDACTED]/nextjs-tutorial-app-router/node_modules/next/dist/server/base-server.js:634:25)
+    at async Object.fn (/[REDACTED]/nextjs-tutorial-app-router/node_modules/next/dist/server/next-server.js:1142:21)
+    at async Router.execute (/[REDACTED]/nextjs-tutorial-app-router/node_modules/next/dist/server/router.js:315:32)
+    at async DevServer.runImpl (/[REDACTED]/nextjs-tutorial-app-router/node_modules/next/dist/server/base-server.js:608:29)
+    at async DevServer.run (/[REDACTED]/nextjs-tutorial-app-router/node_modules/next/dist/server/dev/next-dev-server.js:922:20)
+    at async DevServer.handleRequestImpl (/[REDACTED]/nextjs-tutorial-app-router/node_modules/next/dist/server/base-server.js:539:20)
+{
+  digest: undefined
+}
 ```
 
-```bash
-yarn create next-app --example reproduction-template reproduction-app
+# Reproduction steps
+
+Start the development server before continuing.
+
+```sh
+npm run dev
 ```
 
-```bash
-pnpm create next-app --example reproduction-template reproduction-app
-```
+## With Draft Mode disabled
 
-## Learn More
+1. Go to `/foo`. The page should perform a client-side refresh every 1 second with no errors.
 
-To learn more about Next.js, take a look at the following resources:
+## With Draft Mode enabled
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-- [How to Contribute to Open Source (Next.js)](https://www.youtube.com/watch?v=cuoNzXFLitc) - a video tutorial by Lee Robinson
-- [Triaging in the Next.js repository](https://github.com/vercel/next.js/blob/canary/contributing.md#triaging) - how we work on issues
-- [CodeSandbox](https://codesandbox.io/s/github/vercel/next.js/tree/canary/examples/reproduction-template) - Edit this repository on CodeSandbox
+1. Go to `/draft`. You should be redirect to `/foo`, now with Draft mode enabled.
+1. The page should perform a full browser refresh every 1 second with errors in the console. **🐛 It is supposed to perform a client-side refresh every 1 second.**
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
+## To disable Draft Mode
 
-## Deployment
-
-If your reproduction needs to be deployed, the easiest way is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+1. Go do `/end-draft`.
